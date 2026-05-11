@@ -11,5 +11,8 @@
 		"url": "git+https://github.com/mikeylim/fragments.git"
 	},
 	"author": "Mike Dohyun Lim",
-	"license": "UNLICENSED"
+	"license": "UNLICENSED",
+	"devDependencies": {
+		"prettier": "3.8.3"
+	}
 }
