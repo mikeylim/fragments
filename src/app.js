@@ -3,6 +3,8 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const passport = require('passport');
+const authenticate = require('./auth');
 
 // author and version from our package.json file
 const { author, version } = require('../package.json');
@@ -24,6 +26,11 @@ app.use(helmet());
 
 // Use CORS middleware so we can make requests across origins
 app.use(cors());
+
+passport.use(authenticate.strategy());
+app.use(passport.initialize());
+
+app.use('/', require('./routes'));
 
 // Define a simple health check route.
 // If the server is running we'll respond with a 200 OK
