@@ -4,12 +4,14 @@
 	"version": "0.0.1",
 	"description": "CCP555_Week01_Lab01 Fragments back-end API",
 	"scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "lint": "eslint \"./src/**/*.js\"",
-        "start": "node src/index.js",
-        "dev": "node --watch ./src/index.js",
-        "debug": "node --inspect=0.0.0.0:9229 --watch ./src/index.js"
-    },
+		"test:watch": "jest -c jest.config.js --runInBand --watch --",
+		"test": "jest -c jest.config.js --runInBand --",
+		"coverage": "jest -c jest.config.js --runInBand --coverage",
+		"lint": "eslint \"./src/**/*.js\"",
+		"start": "node src/index.js",
+		"dev": "FRAGMENTS_LOG_LEVEL=debug nodemon ./src/index.js --watch src",
+		"debug": "FRAGMENTS_LOG_LEVEL=debug nodemon --inspect=0.0.0.0:9229 ./src/index.js --watch src"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/mikeylim/fragments.git"
@@ -20,7 +22,9 @@
 		"@eslint/js": "^10.0.1",
 		"eslint": "^10.3.0",
 		"globals": "^17.6.0",
-		"prettier": "3.8.3"
+		"jest": "^30.4.2",
+		"prettier": "3.8.3",
+		"supertest": "^7.2.2"
 	},
 	"dependencies": {
 		"aws-jwt-verify": "^5.1.1",
@@ -28,6 +32,8 @@
 		"dotenv": "^17.4.2",
 		"express": "^5.2.1",
 		"helmet": "^8.1.0",
+		"http-auth": "^4.2.1",
+		"http-auth-passport": "^1.0.7",
 		"passport": "^0.7.0",
 		"passport-http-bearer": "^1.0.1",
 		"pino": "^10.3.1",
