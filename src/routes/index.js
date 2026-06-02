@@ -15,7 +15,7 @@ router.get('/', (req, res) => {
 		createSuccessResponse({
 			description: 'fragments service running normally',
 			author,
-			githubUrl: 'https://github.com/YOUR_USERNAME/fragments',
+			githubUrl: 'https://github.com/mikeylim/fragments',
 			version,
 			timestamp: new Date().toISOString(),
 		})
