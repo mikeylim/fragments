@@ -16,8 +16,8 @@ module.exports = async (req, res, next) => {
 			return res.status(415).json(createErrorResponse(415, 'unsupported fragment type'));
 		}
 
-		const { type } = contentType.parse(req);
-
+		const { type } = contentType.parse(req.headers['content-type']);
+        
 		const fragment = new Fragment({
 			ownerId: req.user,
 			type,

@@ -42,8 +42,8 @@ describe('GET /v1/fragments/:id', () => {
 			.post('/v1/fragments')
 			.auth('test-user1@fragments-testing.com', 'test-password1')
 			.set('Content-Type', 'text/plain')
-			.send(data);
-
+			.send(Buffer.from(data));
+            
 		const id = postRes.body.fragment.id;
 
 		const getRes = await request(app)

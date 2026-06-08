@@ -14,8 +14,8 @@ describe('POST /v1/fragments', () => {
 			.post('/v1/fragments')
 			.auth('test-user1@fragments-testing.com', 'test-password1')
 			.set('Content-Type', 'text/plain')
-			.send(data);
-
+			.send(Buffer.from(data));
+            
 		expect(res.statusCode).toBe(201);
 		expect(res.headers.location).toMatch(/\/v1\/fragments\/.+/);
 

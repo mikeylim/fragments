@@ -18,7 +18,7 @@ describe('GET /v1/fragments', () => {
 			.post('/v1/fragments')
 			.auth('test-user1@fragments-testing.com', 'test-password1')
 			.set('Content-Type', 'text/plain')
-			.send('hello');
+			.send(Buffer.from('hello'));
 
 		const id = postRes.body.fragment.id;
 
@@ -33,8 +33,8 @@ describe('GET /v1/fragments', () => {
 			.post('/v1/fragments')
 			.auth('test-user2@fragments-testing', 'test-password2')
 			.set('Content-Type', 'text/plain')
-			.send('expanded fragment');
-
+			.send(Buffer.from('expanded fragment'));
+            
 		const getRes = await request(app)
 			.get('/v1/fragments?expand=1')
 			.auth('test-user2@fragments-testing', 'test-password2');

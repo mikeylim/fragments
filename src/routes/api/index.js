@@ -1,5 +1,4 @@
 const express = require('express');
-const contentType = require('content-type');
 
 const logger = require('../../logger');
 const { Fragment } = require('../../model/fragment');
@@ -8,19 +7,26 @@ const router = express.Router();
 
 // Support sending raw fragment data up to 5MB.
 // If the Content-Type is supported, req.body will be a Buffer.
-// If unsupported, req.body will not be a Buffer and the route can return 415.
+// If unsupported, req.body will not be parsed and post.js will return 415.
 const rawBody = () =>
 	express.raw({
 		inflate: true,
 		limit: '5mb',
 		type: (req) => {
-			try {
-				const { type } = contentType.parse(req);
-				return Fragment.isSupportedType(type);
-			} catch (err) {
-				logger.warn({ err, contentType: req.headers['content-type'] }, 'invalid Content-Type');
+			const header = req.headers['content-type'];
+
+			if (!header) {
+				logger.warn('missing Content-Type header');
 				return false;
 			}
+
+			const isSupported = Fragment.isSupportedType(header);
+
+			if (!isSupported) {
+				logger.warn({ contentType: header }, 'unsupported Content-Type');
+			}
+
+			return isSupported;
 		},
 	});
 
