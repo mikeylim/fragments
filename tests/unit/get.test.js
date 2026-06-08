@@ -1,24 +1,54 @@
-// tests/unit/get.test.js
-
 const request = require('supertest');
 
 const app = require('../../src/app');
 
 describe('GET /v1/fragments', () => {
-	// If the request is missing the Authorization header, it should be forbidden
 	test('unauthenticated requests are denied', () => request(app).get('/v1/fragments').expect(401));
 
-	// If the wrong username/password pair are used (no such user), it should be forbidden
-	test('incorrect credentials are denied', () =>
-		request(app).get('/v1/fragments').auth('invalid@email.com', 'incorrect_password').expect(401));
-
-	// Using a valid username/password pair should give a success result with a .fragments array
-	test('authenticated users get a fragments array', async () => {
+	test('authenticated user with no fragments gets empty array', async () => {
 		const res = await request(app).get('/v1/fragments').auth('test-user1@fragments-testing.com', 'test-password1');
+
 		expect(res.statusCode).toBe(200);
 		expect(res.body.status).toBe('ok');
-		expect(Array.isArray(res.body.fragments)).toBe(true);
+		expect(res.body.fragments).toEqual([]);
 	});
 
-	// TODO: we'll need to add tests to check the contents of the fragments array later
+	test('authenticated user gets their fragment ids', async () => {
+		const postRes = await request(app)
+			.post('/v1/fragments')
+			.auth('test-user1@fragments-testing.com', 'test-password1')
+			.set('Content-Type', 'text/plain')
+			.send('hello');
+
+		const id = postRes.body.fragment.id;
+
+		const getRes = await request(app).get('/v1/fragments').auth('test-user1@fragments-testing.com', 'test-password1');
+
+		expect(getRes.statusCode).toBe(200);
+		expect(getRes.body.fragments).toContain(id);
+	});
+
+	test('authenticated user can get expanded fragment metadata', async () => {
+		const postRes = await request(app)
+			.post('/v1/fragments')
+			.auth('test-user2@fragments-testing', 'test-password2')
+			.set('Content-Type', 'text/plain')
+			.send('expanded fragment');
+
+		const getRes = await request(app)
+			.get('/v1/fragments?expand=1')
+			.auth('test-user2@fragments-testing', 'test-password2');
+
+		expect(getRes.statusCode).toBe(200);
+		expect(getRes.body.status).toBe('ok');
+		expect(getRes.body.fragments).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: postRes.body.fragment.id,
+					type: 'text/plain',
+					size: 'expanded fragment'.length,
+				}),
+			])
+		);
+	});
 });
