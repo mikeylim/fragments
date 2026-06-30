@@ -13,7 +13,8 @@ LABEL description="Fragments node.js microservice"
 
 # Default runtime configuration.
 # Secrets and environment-specific values should still be passed at runtime.
-ENV NODE_ENV=production
+# ENV NODE_ENV=production
+ENV NODE_ENV=test
 ENV PORT=8080
 ENV NPM_CONFIG_LOGLEVEL=warn
 ENV NPM_CONFIG_COLOR=false
