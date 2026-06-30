@@ -36,6 +36,9 @@ router.get('/fragments', require('./get'));
 // POST /v1/fragments
 router.post('/fragments', rawBody(), require('./post'));
 
+// GET /v1/fragments/:id/info
+router.get('/fragments/:id/info', require('./get-info'));
+
 // GET /v1/fragments/:id
 router.get('/fragments/:id', require('./get-by-id'));
 
