@@ -5,7 +5,7 @@ const path = require('path');
 const envFile = path.join(__dirname, 'env.jest');
 
 // Read the environment variables we use for Jest from our env.jest file
-require('dotenv').config({ path: envFile });
+require('dotenv').config({ path: envFile, quiet: true });
 
 // Log a message to remind developers how to see more detail from log messages
 console.log(`Using FRAGMENTS_LOG_LEVEL=${process.env.FRAGMENTS_LOG_LEVEL}. Use 'debug' in env.jest for more detail`);
@@ -14,12 +14,17 @@ console.log(`Using FRAGMENTS_LOG_LEVEL=${process.env.FRAGMENTS_LOG_LEVEL}. Use '
 module.exports = {
 	verbose: true,
 	testTimeout: 5000,
+	// Include every backend release source file, even when a test does not load it.
+	collectCoverageFrom: ['src/**/*.js'],
 	// Fail if we don't meet 80% line coverage with our tests
 	// NOTE: you can comment this out until you get to 80%, but then
 	// leave it on, so you don't ever fall below that threshold.
 	coverageThreshold: {
 		global: {
-			lines: 80,
+			statements: 85,
+			branches: 85,
+			functions: 85,
+			lines: 85,
 		},
 	},
 };

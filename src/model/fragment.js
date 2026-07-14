@@ -15,10 +15,6 @@ const {
 	deleteFragment,
 } = require('./data');
 
-// Assignment 1 only requires text/plain support.
-// More formats will be added in future releases.
-const supportedTypes = ['text/plain'];
-
 class Fragment {
 	constructor({ id, ownerId, created, updated, type, size = 0 }) {
 		if (!ownerId || typeof ownerId !== 'string') {
@@ -145,27 +141,35 @@ class Fragment {
 	}
 
 	/**
-	 * Returns supported conversion formats.
-	 * Assignment 1 only needs plain text.
-	 * @returns {Array<string>}
+	 * Returns the MIME types that this fragment can be returned as.
+	 *
+	 * Assignment 2 requires Markdown-to-HTML conversion. Other fragment
+	 * types are returned in their original format for now.
+	 *
+	 * @returns {string[]}
 	 */
 	get formats() {
-		if (this.mimeType === 'text/plain') {
-			return ['text/plain'];
+		const formats = [this.mimeType];
+
+		if (this.mimeType === 'text/markdown') {
+			formats.push('text/html');
 		}
 
-		return [];
+		return formats;
 	}
 
 	/**
-	 * Returns true if we support this Content-Type.
-	 * @param {string} value
+	 * Returns true if the given Content-Type is supported by this release.
+	 * Assignment 2 supports all text/* types and application/json.
+	 *
+	 * @param {string} value a Content-Type value
 	 * @returns {boolean}
 	 */
 	static isSupportedType(value) {
 		try {
 			const { type } = contentType.parse(value);
-			return supportedTypes.includes(type);
+
+			return type.startsWith('text/') || type === 'application/json';
 		} catch {
 			return false;
 		}

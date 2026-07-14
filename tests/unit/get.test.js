@@ -1,6 +1,7 @@
 const request = require('supertest');
 
 const app = require('../../src/app');
+const { Fragment } = require('../../src/model/fragment');
 
 describe('GET /v1/fragments', () => {
 	test('unauthenticated requests are denied', () => request(app).get('/v1/fragments').expect(401));
@@ -34,7 +35,7 @@ describe('GET /v1/fragments', () => {
 			.auth('test-user2@fragments-testing', 'test-password2')
 			.set('Content-Type', 'text/plain')
 			.send(Buffer.from('expanded fragment'));
-            
+
 		const getRes = await request(app)
 			.get('/v1/fragments?expand=1')
 			.auth('test-user2@fragments-testing', 'test-password2');
@@ -50,5 +51,16 @@ describe('GET /v1/fragments', () => {
 				}),
 			])
 		);
+	});
+
+	test('unexpected data errors are passed to the error handler', async () => {
+		const error = new Error('database unavailable');
+		const byUser = jest.spyOn(Fragment, 'byUser').mockRejectedValueOnce(error);
+
+		const res = await request(app).get('/v1/fragments').auth('test-user1@fragments-testing.com', 'test-password1');
+
+		expect(res.statusCode).toBe(500);
+		expect(res.body.error).toEqual({ code: 500, message: 'database unavailable' });
+		byUser.mockRestore();
 	});
 });

@@ -80,8 +80,17 @@ jobs:
     name: Build and Push to Docker Hub
     # Don't bother running this job unless the other three all pass
     needs: [lint, dockerfile-lint, unit-tests]
+    # Docker Hub publishing is only needed for commits pushed to main.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      # QEMU lets the AMD64 GitHub runner build the ARM64 image variant.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       # Set up buildx for optimal Docker Builds, see:
       # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
@@ -109,6 +118,13 @@ jobs:
           SHA_TAG: sha-${{ github.sha }}
         uses: docker/build-push-action@v7
         with:
+          context: .
           push: true
+          platforms: linux/amd64,linux/arm64
           # Use 3 tags :sha-sha-7d821bd14e0d6c381dc57a5369ae1a3a9220664f, :main, and :latest
-          tags: ${{ env.DOCKERHUB_REPO }}:${{ env.SHA_TAG }}, ${{ env.DOCKERHUB_REPO }}:main, ${{ env.DOCKERHUB_REPO }}:latest
+          tags: |
+            ${{ env.DOCKERHUB_REPO }}:${{ env.SHA_TAG }}
+            ${{ env.DOCKERHUB_REPO }}:main
+            ${{ env.DOCKERHUB_REPO }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

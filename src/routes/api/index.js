@@ -5,9 +5,8 @@ const { Fragment } = require('../../model/fragment');
 
 const router = express.Router();
 
-// Support sending raw fragment data up to 5MB.
-// If the Content-Type is supported, req.body will be a Buffer.
-// If unsupported, req.body will not be parsed and post.js will return 415.
+// Parse supported fragment bodies as raw binary data.
+// Fragment data is always stored as a Buffer, including text and JSON.
 const rawBody = () =>
 	express.raw({
 		inflate: true,
@@ -20,13 +19,7 @@ const rawBody = () =>
 				return false;
 			}
 
-			const isSupported = Fragment.isSupportedType(header);
-
-			if (!isSupported) {
-				logger.warn({ contentType: header }, 'unsupported Content-Type');
-			}
-
-			return isSupported;
+			return Fragment.isSupportedType(header);
 		},
 	});
 
@@ -37,6 +30,7 @@ router.get('/fragments', require('./get'));
 router.post('/fragments', rawBody(), require('./post'));
 
 // GET /v1/fragments/:id/info
+// Keep this route before /:id.
 router.get('/fragments/:id/info', require('./get-info'));
 
 // GET /v1/fragments/:id

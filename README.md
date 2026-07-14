@@ -155,6 +155,39 @@ curl.exe localhost:8080
 - Stop running servers before starting another script
 - Prettier formats files automatically on save in VSCode
 
+## Assignment 2 API Support
+
+This release accepts any `text/*` content type and `application/json`. Fragment bodies are stored as raw buffers.
+
+```text
+POST /v1/fragments
+GET  /v1/fragments
+GET  /v1/fragments?expand=1
+GET  /v1/fragments/:id
+GET  /v1/fragments/:id/info
+GET  /v1/fragments/:id.html
+```
+
+The `.html` extension converts a stored `text/markdown` fragment with `markdown-it`. The converted representation is returned without replacing the original data.
+
+## Docker
+
+The production image uses a multi-stage build, installs production dependencies only, and runs as the non-root `node` user. Cognito settings and `API_URL` must be supplied at runtime; they are never copied into the image.
+
+Build for the local machine:
+
+```bash
+docker build -t fragments:local .
+```
+
+Build both EC2 AMD64 and Apple Silicon ARM64 variants without pushing:
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 --output type=oci,dest=/tmp/fragments.tar .
+```
+
+The GitHub Actions workflow publishes `main`, `latest`, and commit-SHA tags to `mikedohyunlim/fragments` after lint, tests, and Dockerfile lint pass on a push to `main`.
+
 ---
 
 ## Project Structure

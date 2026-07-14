@@ -7,6 +7,7 @@ const { createSuccessResponse, createErrorResponse } = require('../../response')
 /**
  * Create a new fragment for the authenticated user.
  * Assignment 1 only supports text/plain fragments.
+ * Assignment 2 adds any text/* type and application/json.
  */
 module.exports = async (req, res, next) => {
 	try {
@@ -16,8 +17,9 @@ module.exports = async (req, res, next) => {
 			return res.status(415).json(createErrorResponse(415, 'unsupported fragment type'));
 		}
 
-		const { type } = contentType.parse(req.headers['content-type']);
-        
+		// Normalize and retain the complete Content-Type, including any charset.
+		const type = contentType.format(contentType.parse(req.headers['content-type']));
+
 		const fragment = new Fragment({
 			ownerId: req.user,
 			type,

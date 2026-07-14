@@ -1,6 +1,6 @@
 {
 	"name": "fragments",
-	"private": "true",
+	"private": true,
 	"version": "0.7.0",
 	"description": "CCP555_Week01_Lab01 Fragments back-end API",
 	"scripts": {
@@ -8,8 +8,10 @@
 		"test": "jest -c jest.config.js --runInBand --",
 		"coverage": "jest -c jest.config.js --runInBand --coverage",
 		"lint": "eslint \"./src/**/*.js\"",
+		"format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\" \"*.js\" \"*.json\" \".github/workflows/*.yml\"",
+		"format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.js\" \"*.js\" \"*.json\" \".github/workflows/*.yml\"",
 		"start": "node src/index.js",
-		"dev": "FRAGMENTS_LOG_LEVEL=debug npx nodemon ./src/index.js --watch src",
+		"dev": "FRAGMENTS_LOG_LEVEL=debug nodemon ./src/index.js --watch src",
 		"debug": "FRAGMENTS_LOG_LEVEL=debug nodemon --inspect=0.0.0.0:9229 ./src/index.js --watch src"
 	},
 	"repository": {
@@ -23,6 +25,7 @@
 		"eslint": "^10.3.0",
 		"globals": "^17.6.0",
 		"jest": "^30.4.2",
+		"nodemon": "^3.1.10",
 		"prettier": "3.8.3",
 		"supertest": "^7.2.2"
 	},
@@ -35,6 +38,8 @@
 		"helmet": "^8.1.0",
 		"http-auth": "^4.2.1",
 		"http-auth-passport": "^1.0.7",
+		"markdown-it": "^14.3.0",
+		"mime-types": "^3.0.2",
 		"passport": "^0.7.0",
 		"passport-http-bearer": "^1.0.1",
 		"pino": "^10.3.1",

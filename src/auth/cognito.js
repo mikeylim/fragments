@@ -46,12 +46,12 @@ module.exports.strategy = () =>
 		try {
 			// Verify this JWT
 			const user = await jwtVerifier.verify(token);
-			logger.debug({ user }, 'verified user token');
+			logger.debug('verified user token');
 
 			// Create a user, but only bother with their email
 			done(null, user.email);
 		} catch (err) {
-			logger.error({ err, token }, 'could not verify token');
+			logger.error({ err }, 'could not verify token');
 			done(null, false);
 		}
 	});
