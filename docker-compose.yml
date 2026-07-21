@@ -1,0 +1,70 @@
+# docker-compose.yml
+
+services:
+  # Fragments microservice API server
+  fragments:
+    # Use a proper init process (tini)
+    init: true
+
+    # Build the Docker Image using the Dockerfile
+    # and current directory as the build context
+    build: .
+
+    # Environment variables to use
+    environment:
+      # Use Basic Auth for local integration testing
+      - NODE_ENV=test
+
+      # Our API will be running on http://localhost:8080
+      - API_URL=http://localhost:8080
+
+      # Use Basic Auth (for running tests, CI)
+      - HTPASSWD_FILE=tests/.htpasswd
+
+      # Use the FRAGMENTS_LOG_LEVEL set in the host environment,
+      # or default to info
+      - FRAGMENTS_LOG_LEVEL=${FRAGMENTS_LOG_LEVEL:-info}
+
+      - AWS_REGION=us-east-1
+
+      # Use the MiniStack endpoint vs. AWS for S3 AWS SDK clients.
+      # Docker Compose service names act as internal hostnames.
+      - AWS_S3_ENDPOINT_URL=http://ministack:4566
+
+      # Use the DynamoDB Local endpoint vs. AWS for DynamoDB clients.
+      - AWS_DYNAMODB_ENDPOINT_URL=http://dynamodb-local:8000
+
+      # Local resource names
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME:-fragments}
+      - AWS_DYNAMODB_TABLE_NAME=${AWS_DYNAMODB_TABLE_NAME:-fragments}
+
+    # Mount the test password file for local Basic Auth
+    volumes:
+      - ./tests/.htpasswd:/app/tests/.htpasswd:ro
+
+    # Ports to publish
+    ports:
+      - '8080:8080'
+
+  # DynamoDB Local, see: https://hub.docker.com/r/amazon/dynamodb-local
+  dynamodb-local:
+    image: amazon/dynamodb-local
+    ports:
+      # Default port is 8000
+      - '8000:8000'
+
+    # Run the database in memory
+    command: ['-jar', 'DynamoDBLocal.jar', '-inMemory']
+
+  # MiniStack for S3, see: https://ministack.org/docs/
+  ministack:
+    # https://hub.docker.com/r/ministackorg/ministack
+    image: ministackorg/ministack
+    ports:
+      - '4566:4566'
+    environment:
+      # We only want to run S3
+      - SERVICES=s3
+
+      # We will use us-east-1
+      - MINISTACK_REGION=us-east-1

@@ -27,9 +27,13 @@ module.exports = async (req, res) => {
 
 	const data = await fragment.getData();
 
+	// Text responses without an explicit charset are UTF-8.
+	const responseType =
+		fragment.isText && !/;\s*charset=/i.test(fragment.type) ? `${fragment.type}; charset=utf-8` : fragment.type;
+
 	if (!extension) {
 		logger.debug({ id, ownerId: req.user }, 'returning fragment data');
-		res.setHeader('Content-Type', fragment.type);
+		res.setHeader('Content-Type', responseType);
 		return res.status(200).send(data);
 	}
 
@@ -44,7 +48,7 @@ module.exports = async (req, res) => {
 	// An extension matching the stored type returns the original bytes unchanged.
 	if (requestedType === fragment.mimeType) {
 		logger.debug({ id, extension, ownerId: req.user }, 'returning fragment data in original format');
-		res.setHeader('Content-Type', fragment.type);
+		res.setHeader('Content-Type', responseType);
 		return res.status(200).send(data);
 	}
 
