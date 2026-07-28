@@ -26,6 +26,9 @@ services:
       - FRAGMENTS_LOG_LEVEL=${FRAGMENTS_LOG_LEVEL:-info}
 
       - AWS_REGION=us-east-1
+      # MiniStack uses fake local credentials. Never put real AWS credentials here.
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
 
       # Use the MiniStack endpoint vs. AWS for S3 AWS SDK clients.
       # Docker Compose service names act as internal hostnames.

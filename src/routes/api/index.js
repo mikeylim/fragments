@@ -33,6 +33,9 @@ router.post('/fragments', rawBody(), require('./post'));
 // Keep this route before /:id.
 router.get('/fragments/:id/info', require('./get-info'));
 
+// DELETE /v1/fragments/:id
+router.delete('/fragments/:id', require('./delete'));
+
 // GET /v1/fragments/:id
 router.get('/fragments/:id', require('./get-by-id'));
 
