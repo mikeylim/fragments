@@ -1,6 +1,6 @@
 # Fragments
 
-Fragments back-end API for CCP555 Cloud Computing Programming.
+Fragments is a cloud-native REST API for creating, retrieving, converting, and deleting authenticated users’ text and JSON fragments. It uses Node.js, Express, Amazon Cognito, AWS S3, Docker, Jest, Hurl, and GitHub Actions.
 
 ## Project Setup
 
