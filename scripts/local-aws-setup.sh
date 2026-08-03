@@ -30,6 +30,13 @@ echo "MiniStack S3 Ready"
 echo "Creating MiniStack S3 bucket: fragments"
 aws --endpoint-url=http://localhost:4566 s3api create-bucket --bucket fragments
 
+# Wait for DynamoDB Local before trying to create its in-memory table.
+echo "Waiting for DynamoDB Local..."
+until aws --endpoint-url=http://localhost:8000 dynamodb list-tables >/dev/null 2>&1; do
+    sleep 2
+done
+echo "DynamoDB Local Ready"
+
 # Setup DynamoDB Table with dynamodb-local, see:
 # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/getting-started-step-1.html
 echo "Creating DynamoDB-Local DynamoDB table: fragments"

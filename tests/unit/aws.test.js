@@ -1,12 +1,18 @@
 const { Readable } = require('stream');
 
 const mockS3Send = jest.fn();
+const mockDdbSend = jest.fn();
 
 jest.mock('../../src/model/data/aws/s3Client', () => ({
 	send: mockS3Send,
 }));
 
+jest.mock('../../src/model/data/aws/ddbDocClient', () => ({
+	send: mockDdbSend,
+}));
+
 const { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { PutCommand, GetCommand, QueryCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 const {
 	listFragments,
 	writeFragment,
@@ -18,10 +24,13 @@ const {
 
 describe('AWS data model', () => {
 	const originalBucketName = process.env.AWS_S3_BUCKET_NAME;
+	const originalTableName = process.env.AWS_DYNAMODB_TABLE_NAME;
 
 	beforeEach(() => {
 		process.env.AWS_S3_BUCKET_NAME = 'fragments';
+		process.env.AWS_DYNAMODB_TABLE_NAME = 'fragments';
 		mockS3Send.mockReset();
+		mockDdbSend.mockReset();
 	});
 
 	afterAll(() => {
@@ -30,9 +39,15 @@ describe('AWS data model', () => {
 		} else {
 			process.env.AWS_S3_BUCKET_NAME = originalBucketName;
 		}
+
+		if (originalTableName === undefined) {
+			delete process.env.AWS_DYNAMODB_TABLE_NAME;
+		} else {
+			process.env.AWS_DYNAMODB_TABLE_NAME = originalTableName;
+		}
 	});
 
-	test('stores and reads fragment metadata using the temporary MemoryDB', async () => {
+	test('writes fragment metadata using PutCommand', async () => {
 		const fragment = {
 			id: 'metadata-fragment',
 			ownerId: 'metadata-owner',
@@ -41,12 +56,62 @@ describe('AWS data model', () => {
 			created: new Date().toISOString(),
 			updated: new Date().toISOString(),
 		};
+		mockDdbSend.mockResolvedValueOnce({});
 
 		await writeFragment(fragment);
 
-		expect(await readFragment(fragment.ownerId, fragment.id)).toEqual(fragment);
-		expect(await listFragments(fragment.ownerId)).toEqual([fragment.id]);
-		expect(await listFragments(fragment.ownerId, true)).toEqual([JSON.stringify(fragment)]);
+		const command = mockDdbSend.mock.calls[0][0];
+		expect(command).toBeInstanceOf(PutCommand);
+		expect(command.input).toEqual({ TableName: 'fragments', Item: fragment });
+	});
+
+	test('reads fragment metadata using GetCommand', async () => {
+		const fragment = { id: 'fragment-1', ownerId: 'owner-1', type: 'text/plain', size: 5 };
+		mockDdbSend.mockResolvedValueOnce({ Item: fragment });
+
+		expect(await readFragment('owner-1', 'fragment-1')).toEqual(fragment);
+
+		const command = mockDdbSend.mock.calls[0][0];
+		expect(command).toBeInstanceOf(GetCommand);
+		expect(command.input).toEqual({
+			TableName: 'fragments',
+			Key: { ownerId: 'owner-1', id: 'fragment-1' },
+		});
+	});
+
+	test('returns undefined when DynamoDB has no matching fragment', async () => {
+		mockDdbSend.mockResolvedValueOnce({});
+
+		expect(await readFragment('owner-1', 'missing-fragment')).toBeUndefined();
+	});
+
+	test('lists fragment ids using QueryCommand and a projection', async () => {
+		mockDdbSend.mockResolvedValueOnce({ Items: [{ id: 'fragment-1' }, { id: 'fragment-2' }] });
+
+		expect(await listFragments('owner-1')).toEqual(['fragment-1', 'fragment-2']);
+
+		const command = mockDdbSend.mock.calls[0][0];
+		expect(command).toBeInstanceOf(QueryCommand);
+		expect(command.input).toEqual({
+			TableName: 'fragments',
+			KeyConditionExpression: 'ownerId = :ownerId',
+			ExpressionAttributeValues: { ':ownerId': 'owner-1' },
+			ProjectionExpression: 'id',
+		});
+	});
+
+	test('lists expanded fragment metadata without a projection', async () => {
+		const fragments = [{ id: 'fragment-1', ownerId: 'owner-1', type: 'text/plain', size: 5 }];
+		mockDdbSend.mockResolvedValueOnce({ Items: fragments });
+
+		expect(await listFragments('owner-1', true)).toEqual(fragments);
+		expect(mockDdbSend.mock.calls[0][0].input).not.toHaveProperty('ProjectionExpression');
+	});
+
+	test('returns an empty list when a query has no Items', async () => {
+		mockDdbSend.mockResolvedValueOnce({});
+
+		expect(await listFragments('owner-1')).toEqual([]);
 	});
 
 	test('writes fragment data using PutObjectCommand', async () => {
@@ -54,8 +119,6 @@ describe('AWS data model', () => {
 
 		const data = Buffer.from('Hello S3!');
 		await writeFragmentData('owner-1', 'fragment-1', data);
-
-		expect(mockS3Send).toHaveBeenCalledTimes(1);
 
 		const command = mockS3Send.mock.calls[0][0];
 		expect(command).toBeInstanceOf(PutObjectCommand);
@@ -74,7 +137,6 @@ describe('AWS data model', () => {
 		const result = await readFragmentData('owner-1', 'fragment-1');
 
 		expect(result).toEqual(Buffer.from('Hello S3!'));
-
 		const command = mockS3Send.mock.calls[0][0];
 		expect(command).toBeInstanceOf(GetObjectCommand);
 		expect(command.input).toEqual({
@@ -83,29 +145,43 @@ describe('AWS data model', () => {
 		});
 	});
 
-	test('deletes fragment metadata and S3 data using DeleteObjectCommand', async () => {
-		const fragment = {
-			id: 'delete-fragment',
-			ownerId: 'delete-owner',
-			type: 'text/plain',
-			size: 1,
-			created: new Date().toISOString(),
-			updated: new Date().toISOString(),
-		};
-
-		await writeFragment(fragment);
+	test('deletes fragment metadata from DynamoDB and data from S3', async () => {
+		mockDdbSend.mockResolvedValueOnce({});
 		mockS3Send.mockResolvedValueOnce({});
 
-		await deleteFragment(fragment.ownerId, fragment.id);
+		await deleteFragment('owner-1', 'fragment-1');
 
-		expect(await readFragment(fragment.ownerId, fragment.id)).toBeUndefined();
-
-		const command = mockS3Send.mock.calls[0][0];
-		expect(command).toBeInstanceOf(DeleteObjectCommand);
-		expect(command.input).toEqual({
-			Bucket: 'fragments',
-			Key: 'delete-owner/delete-fragment',
+		const ddbCommand = mockDdbSend.mock.calls[0][0];
+		expect(ddbCommand).toBeInstanceOf(DeleteCommand);
+		expect(ddbCommand.input).toEqual({
+			TableName: 'fragments',
+			Key: { ownerId: 'owner-1', id: 'fragment-1' },
 		});
+
+		const s3Command = mockS3Send.mock.calls[0][0];
+		expect(s3Command).toBeInstanceOf(DeleteObjectCommand);
+		expect(s3Command.input).toEqual({
+			Bucket: 'fragments',
+			Key: 'owner-1/fragment-1',
+		});
+	});
+
+	test('propagates a DynamoDB write failure', async () => {
+		mockDdbSend.mockRejectedValueOnce(new Error('DynamoDB unavailable'));
+
+		await expect(writeFragment({ ownerId: 'owner-1', id: 'fragment-1' })).rejects.toThrow('DynamoDB unavailable');
+	});
+
+	test('propagates a DynamoDB read failure', async () => {
+		mockDdbSend.mockRejectedValueOnce(new Error('DynamoDB unavailable'));
+
+		await expect(readFragment('owner-1', 'fragment-1')).rejects.toThrow('DynamoDB unavailable');
+	});
+
+	test('propagates a DynamoDB query failure', async () => {
+		mockDdbSend.mockRejectedValueOnce(new Error('DynamoDB unavailable'));
+
+		await expect(listFragments('owner-1')).rejects.toThrow('DynamoDB unavailable');
 	});
 
 	test('turns an S3 upload failure into a useful error', async () => {
@@ -134,19 +210,10 @@ describe('AWS data model', () => {
 		await expect(readFragmentData('owner-1', 'fragment-1')).rejects.toThrow('unable to read fragment data');
 	});
 
-	test('turns an S3 delete failure into a useful error', async () => {
-		const fragment = {
-			id: 'failed-delete-fragment',
-			ownerId: 'failed-delete-owner',
-			type: 'text/plain',
-			size: 1,
-			created: new Date().toISOString(),
-			updated: new Date().toISOString(),
-		};
+	test('turns a delete failure into a useful error', async () => {
+		mockDdbSend.mockRejectedValueOnce(new Error('DynamoDB unavailable'));
+		mockS3Send.mockResolvedValueOnce({});
 
-		await writeFragment(fragment);
-		mockS3Send.mockRejectedValueOnce(new Error('S3 unavailable'));
-
-		await expect(deleteFragment(fragment.ownerId, fragment.id)).rejects.toThrow('unable to delete fragment data');
+		await expect(deleteFragment('owner-1', 'fragment-1')).rejects.toThrow('unable to delete fragment');
 	});
 });

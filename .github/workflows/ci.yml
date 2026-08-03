@@ -76,10 +76,37 @@ jobs:
         # run: npm install-ci-test
         run: npm install-ci-test
 
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install node dependencies
+        # Install dev dependencies too, since Hurl is used by the integration tests.
+        run: npm install
+
+      - name: Build Containers
+        run: docker compose up --build -d
+
+      - name: Setup Local AWS Resources
+        # This script creates the MiniStack bucket and DynamoDB Local table.
+        run: ./scripts/local-aws-setup.sh
+
+      - name: Run Hurl Tests
+        run: npm run test:integration
+
   docker-hub:
     name: Build and Push to Docker Hub
-    # Don't bother running this job unless the other three all pass
-    needs: [lint, dockerfile-lint, unit-tests]
+    # Don't bother running this job unless the other four all pass
+    needs: [lint, dockerfile-lint, unit-tests, integration-tests]
     # Docker Hub publishing is only needed for commits pushed to main.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
