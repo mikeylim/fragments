@@ -16,3 +16,5 @@ jsonpath "$.author" isString
 jsonpath "$.githubUrl" matches /^https:\/\/github.com\/.+/
 # We expect to get back a JSON response with { ..., "version": "x.y.z" }
 jsonpath "$.version" matches /^\d+\.\d+\.\d+$/
+# ECS uses this value to identify which task answered through the load balancer.
+jsonpath "$.hostname" isString
