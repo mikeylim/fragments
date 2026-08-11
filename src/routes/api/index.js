@@ -29,6 +29,9 @@ router.get('/fragments', require('./get'));
 // POST /v1/fragments
 router.post('/fragments', rawBody(), require('./post'));
 
+// PUT /v1/fragments/:id
+router.put('/fragments/:id', rawBody(), require('./put'));
+
 // GET /v1/fragments/:id/info
 // Keep this route before /:id.
 router.get('/fragments/:id/info', require('./get-info'));

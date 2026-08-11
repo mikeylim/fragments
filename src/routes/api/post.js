@@ -6,8 +6,7 @@ const { createSuccessResponse, createErrorResponse } = require('../../response')
 
 /**
  * Create a new fragment for the authenticated user.
- * Assignment 1 only supports text/plain fragments.
- * Assignment 2 adds any text/* type and application/json.
+ * Supported fragments include text, JSON, YAML, and image data.
  */
 module.exports = async (req, res, next) => {
 	try {

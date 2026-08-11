@@ -49,6 +49,22 @@ describe('POST /v1/fragments', () => {
 		}
 	);
 
+	test.each(['application/yaml', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif'])(
+		'authenticated users can create a %s fragment',
+		async (type) => {
+			const data = Buffer.from([0, 1, 2, 3]);
+			const res = await request(app)
+				.post('/v1/fragments')
+				.auth('test-user1@fragments-testing.com', 'test-password1')
+				.set('Content-Type', type)
+				.send(data);
+
+			expect(res.statusCode).toBe(201);
+			expect(res.body.fragment.type).toBe(type);
+			expect(res.body.fragment.size).toBe(data.length);
+		}
+	);
+
 	test('authenticated users can create an application/json fragment', async () => {
 		const data = JSON.stringify({ assignment: 2 });
 		const res = await request(app)

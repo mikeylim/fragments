@@ -1,15 +1,12 @@
 const logger = require('../../logger');
 const { Fragment } = require('../../model/fragment');
+const { convertFragment, supportsExtension, typeForExtension } = require('../../model/conversion');
 const { createErrorResponse } = require('../../response');
-const MarkdownIt = require('markdown-it');
-const mime = require('mime-types');
-
-const markdown = new MarkdownIt();
 
 /**
  * Get raw fragment data for the authenticated user.
- * Assignment 1 only requires text/plain support.
- * Assignment 2 adds original text/JSON data and Markdown-to-HTML conversion.
+ * An optional supported extension converts the response without changing the
+ * original fragment stored in the data layer.
  */
 module.exports = async (req, res) => {
 	const dot = req.params.id.lastIndexOf('.');
@@ -37,29 +34,26 @@ module.exports = async (req, res) => {
 		return res.status(200).send(data);
 	}
 
-	// Basic optional .txt support: /v1/fragments/:id.txt
-	const requestedType = mime.lookup(extension);
-
-	if (!requestedType) {
-		logger.warn({ id, extension }, 'unsupported fragment extension');
-		return res.status(415).json(createErrorResponse(415, 'unsupported fragment extension'));
+	// Validate against the source type's conversion matrix before checking the
+	// target MIME type. For example, JSON supports .yml but YAML supports .yaml only.
+	if (!supportsExtension(fragment.mimeType, extension)) {
+		logger.warn({ id, extension, from: fragment.mimeType }, 'unsupported fragment conversion');
+		return res.status(415).json(createErrorResponse(415, 'unsupported fragment conversion'));
 	}
 
-	// An extension matching the stored type returns the original bytes unchanged.
-	if (requestedType === fragment.mimeType) {
-		logger.debug({ id, extension, ownerId: req.user }, 'returning fragment data in original format');
-		res.setHeader('Content-Type', responseType);
-		return res.status(200).send(data);
-	}
+	try {
+		const requestedType = typeForExtension(extension);
+		const converted = await convertFragment(data, fragment.mimeType, extension);
+		const outputType = requestedType === fragment.mimeType ? responseType : requestedType;
 
-	if (fragment.mimeType === 'text/markdown' && requestedType === 'text/html') {
-		const converted = Buffer.from(markdown.render(data.toString()));
-
-		logger.debug({ id, ownerId: req.user }, 'converting Markdown fragment to HTML');
-		res.setHeader('Content-Type', 'text/html');
+		logger.debug(
+			{ id, extension, from: fragment.mimeType, to: outputType, ownerId: req.user },
+			'returning converted fragment data'
+		);
+		res.setHeader('Content-Type', outputType);
 		return res.status(200).send(converted);
+	} catch (err) {
+		logger.warn({ err, id, extension, from: fragment.mimeType }, 'fragment conversion failed');
+		return res.status(415).json(createErrorResponse(415, 'fragment conversion failed'));
 	}
-
-	logger.warn({ id, from: fragment.mimeType, to: requestedType }, 'unsupported fragment conversion');
-	return res.status(415).json(createErrorResponse(415, 'unsupported fragment conversion'));
 };

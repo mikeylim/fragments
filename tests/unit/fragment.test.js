@@ -13,14 +13,14 @@ const validTypes = [
 	`text/markdown`,
 	`text/html`,
 	`application/json`,
+	`application/yaml`,
 	`text/csv`,
 	`text/x-custom`,
-	/* Assignment 3 image types remain unsupported.
 	`image/png`,
 	`image/jpeg`,
 	`image/webp`,
-  `image/gif`,
-  */
+	`image/gif`,
+	`image/avif`,
 ];
 
 describe('Fragment class', () => {
@@ -127,6 +127,12 @@ describe('Fragment class', () => {
 			expect(Fragment.isSupportedType('text/csv')).toBe(true);
 			expect(Fragment.isSupportedType('text/x-custom')).toBe(true);
 			expect(Fragment.isSupportedType('application/json')).toBe(true);
+			expect(Fragment.isSupportedType('application/yaml')).toBe(true);
+			expect(Fragment.isSupportedType('image/png')).toBe(true);
+			expect(Fragment.isSupportedType('image/jpeg')).toBe(true);
+			expect(Fragment.isSupportedType('image/webp')).toBe(true);
+			expect(Fragment.isSupportedType('image/gif')).toBe(true);
+			expect(Fragment.isSupportedType('image/avif')).toBe(true);
 		});
 
 		test('other types are not supported', () => {
@@ -186,12 +192,34 @@ describe('Fragment class', () => {
 
 		test('formats includes HTML conversion for Markdown', () => {
 			const fragment = new Fragment({ ownerId: '1234', type: 'text/markdown', size: 0 });
-			expect(fragment.formats).toEqual(['text/markdown', 'text/html']);
+			expect(fragment.formats).toEqual(['text/markdown', 'text/html', 'text/plain']);
 		});
 
-		test('formats returns only the original format for JSON', () => {
+		test('formats includes YAML and plain text conversions for JSON', () => {
 			const fragment = new Fragment({ ownerId: '1234', type: 'application/json', size: 0 });
-			expect(fragment.formats).toEqual(['application/json']);
+			expect(fragment.formats).toEqual(['application/json', 'application/yaml', 'text/plain']);
+		});
+
+		test.each([
+			['text/html', ['text/html', 'text/plain']],
+			['text/csv', ['text/csv', 'text/plain', 'application/json']],
+			['application/yaml', ['application/yaml', 'text/plain']],
+		])('formats returns the conversion matrix for %s', (type, formats) => {
+			const fragment = new Fragment({ ownerId: '1234', type, size: 0 });
+			expect(fragment.formats).toEqual(formats);
+		});
+
+		test.each(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif'])(
+			'formats includes all supported image types for %s',
+			(type) => {
+				const fragment = new Fragment({ ownerId: '1234', type, size: 0 });
+				expect(fragment.formats).toEqual(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif']);
+			}
+		);
+
+		test('unknown text types retain only their original format', () => {
+			const fragment = new Fragment({ ownerId: '1234', type: 'text/x-custom', size: 0 });
+			expect(fragment.formats).toEqual(['text/x-custom']);
 		});
 	});
 

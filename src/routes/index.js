@@ -1,4 +1,5 @@
 const express = require('express');
+const { hostname } = require('os');
 
 const { version, author } = require('../../package.json');
 const { authenticate } = require('../auth');
@@ -22,6 +23,7 @@ router.get('/', (req, res) => {
 			description: 'fragments service running normally',
 			author,
 			githubUrl: 'https://github.com/mikeylim/fragments',
+			hostname: hostname(),
 			version,
 			timestamp: new Date().toISOString(),
 		})

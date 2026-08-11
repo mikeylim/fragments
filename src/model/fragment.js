@@ -4,6 +4,7 @@ const { randomUUID } = require('crypto');
 
 // Use https://www.npmjs.com/package/content-type to create/parse Content-Type headers
 const contentType = require('content-type');
+const { formatsForType } = require('./conversion');
 
 // Functions for working with fragment metadata/data using our DB
 const {
@@ -142,25 +143,14 @@ class Fragment {
 
 	/**
 	 * Returns the MIME types that this fragment can be returned as.
-	 *
-	 * Assignment 2 requires Markdown-to-HTML conversion. Other fragment
-	 * types are returned in their original format for now.
-	 *
 	 * @returns {string[]}
 	 */
 	get formats() {
-		const formats = [this.mimeType];
-
-		if (this.mimeType === 'text/markdown') {
-			formats.push('text/html');
-		}
-
-		return formats;
+		return formatsForType(this.mimeType);
 	}
 
 	/**
-	 * Returns true if the given Content-Type is supported by this release.
-	 * Assignment 2 supports all text/* types and application/json.
+	 * Returns true if the given Content-Type is supported.
 	 *
 	 * @param {string} value a Content-Type value
 	 * @returns {boolean}
@@ -169,7 +159,18 @@ class Fragment {
 		try {
 			const { type } = contentType.parse(value);
 
-			return type.startsWith('text/') || type === 'application/json';
+			return (
+				type.startsWith('text/') ||
+				[
+					'application/json',
+					'application/yaml',
+					'image/png',
+					'image/jpeg',
+					'image/webp',
+					'image/gif',
+					'image/avif',
+				].includes(type)
+			);
 		} catch {
 			return false;
 		}
