@@ -1,7 +1,7 @@
 # Dockerfile for the fragments Node.js microservice.
 # This optimized version uses a multi-stage Alpine-based Node build,
-# installs only production dependencies, runs as a non-root user,
-# and includes a Docker health check for the running API.
+# installs only production dependencies, and includes a Docker health check
+# for the running API.
 
 # Use an official Node.js image with Alpine Linux to reduce image size.
 # Pinning a specific version helps keep builds reproducible.
@@ -28,7 +28,7 @@ LABEL description="Fragments node.js microservice"
 # Default runtime configuration.
 # Secrets and environment-specific values should still be passed at runtime.
 ENV NODE_ENV=production
-ENV PORT=8080
+ENV PORT=80
 ENV NPM_CONFIG_LOGLEVEL=warn
 ENV NPM_CONFIG_COLOR=false
 
@@ -44,16 +44,13 @@ COPY --chown=node:node ./package.json ./package.json
 # Copy the application source code
 COPY --chown=node:node ./src ./src
 
-# Run the container as the non-root node user included in the official Node image
-USER node
-
-# We run our service on port 8080
-EXPOSE 8080
+# ECS maps production HTTP traffic to port 80 in this container.
+EXPOSE 80
 
 # Health check confirms that the API is actually responding, not just running.
 # Using node avoids needing to install curl in the Alpine image.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+  CMD node -e "require('http').get({ host: 'localhost', port: process.env.PORT || 80, path: '/' }, (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 # Start the container by running our server
 CMD ["node", "src/index.js"]

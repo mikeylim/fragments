@@ -18,6 +18,9 @@ services:
       # Our API will be running on http://localhost:8080
       - API_URL=http://localhost:8080
 
+      # Override the production container's port 80 for local development.
+      - PORT=8080
+
       # Use Basic Auth (for running tests, CI)
       - HTPASSWD_FILE=tests/.htpasswd
 
