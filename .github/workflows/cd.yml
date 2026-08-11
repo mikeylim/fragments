@@ -29,6 +29,28 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v6
 
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install node dependencies
+        run: npm ci
+
+      - name: Build integration-test containers
+        run: docker compose up --build -d
+
+      - name: Setup local AWS resources
+        run: ./scripts/local-aws-setup.sh
+
+      - name: Run Hurl integration tests
+        run: npm run test:integration
+
+      - name: Stop integration-test containers
+        if: always()
+        run: docker compose down
+
       # Use buildx, which is faster and can optimize the build steps
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -62,6 +84,44 @@ jobs:
           VERSION_TAG: ${{ github.ref_name }}
         uses: docker/build-push-action@v7
         with:
+          context: .
           push: true
+          # ECS Fargate is configured to run Linux/X86_64 tasks.
+          platforms: linux/amd64
           # Use the git tag version and `latest`
-          tags: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ env.VERSION_TAG }}, ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ env.VERSION_TAG }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Update the exported task definition to use the image built for this tag.
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: update-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPO: fragments
+          VERSION_TAG: ${{ github.ref_name }}
+        with:
+          task-definition: fragments-definition.json
+          container-name: fragments-container
+          image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ env.VERSION_TAG }}
+          environment-variables: |
+            PORT=80
+            NODE_ENV=production
+            FRAGMENTS_LOG_LEVEL=info
+            API_URL=http://fragments-lb-2137875786.us-east-2.elb.amazonaws.com
+            AWS_REGION=us-east-2
+            AWS_COGNITO_POOL_ID=us-east-2_WT4l7j6z1
+            AWS_COGNITO_CLIENT_ID=6u7uqrmeibpriuv53pboj2b38r
+            AWS_S3_BUCKET_NAME=mikedohyunlim-fragments-ccp555
+            AWS_DYNAMODB_TABLE_NAME=fragments
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.update-task-def.outputs.task-definition }}
+          cluster: fragments-cluster
+          service: fragments-task
+          wait-for-service-stability: true

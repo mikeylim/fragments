@@ -1,0 +1,81 @@
+{
+	"containerDefinitions": [
+		{
+			"name": "fragments-container",
+			"image": "mikedohyunlim/fragments:latest",
+			"cpu": 0,
+			"portMappings": [
+				{
+					"containerPort": 80,
+					"hostPort": 80,
+					"protocol": "tcp",
+					"name": "fragments-container-80-tcp",
+					"appProtocol": "http"
+				}
+			],
+			"essential": true,
+			"environment": [
+				{
+					"name": "AWS_REGION",
+					"value": "us-east-2"
+				},
+				{
+					"name": "AWS_COGNITO_POOL_ID",
+					"value": "us-east-2_WT4l7j6z1"
+				},
+				{
+					"name": "FRAGMENTS_LOG_LEVEL",
+					"value": "info"
+				},
+				{
+					"name": "PORT",
+					"value": "80"
+				},
+				{
+					"name": "NODE_ENV",
+					"value": "production"
+				},
+				{
+					"name": "AWS_S3_BUCKET_NAME",
+					"value": "mikedohyunlim-fragments-ccp555"
+				},
+				{
+					"name": "AWS_DYNAMODB_TABLE_NAME",
+					"value": "fragments"
+				},
+				{
+					"name": "AWS_COGNITO_CLIENT_ID",
+					"value": "6u7uqrmeibpriuv53pboj2b38r"
+				}
+			],
+			"environmentFiles": [],
+			"mountPoints": [],
+			"volumesFrom": [],
+			"ulimits": [],
+			"logConfiguration": {
+				"logDriver": "awslogs",
+				"options": {
+					"awslogs-group": "/ecs/fragments-task",
+					"awslogs-create-group": "true",
+					"awslogs-region": "us-east-2",
+					"awslogs-stream-prefix": "ecs"
+				},
+				"secretOptions": []
+			},
+			"systemControls": []
+		}
+	],
+	"family": "fragments-task",
+	"taskRoleArn": "arn:aws:iam::226435212473:role/LabRole",
+	"executionRoleArn": "arn:aws:iam::226435212473:role/LabRole",
+	"networkMode": "awsvpc",
+	"volumes": [],
+	"placementConstraints": [],
+	"runtimePlatform": {
+		"cpuArchitecture": "X86_64",
+		"operatingSystemFamily": "LINUX"
+	},
+	"requiresCompatibilities": ["FARGATE"],
+	"cpu": "256",
+	"memory": "512"
+}
